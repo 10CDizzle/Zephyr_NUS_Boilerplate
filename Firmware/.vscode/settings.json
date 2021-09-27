@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "hrs.h": "c",
+        "bluetooth.h": "c",
+        "log.h": "c",
+        "hci.h": "c"
+    }
+}
