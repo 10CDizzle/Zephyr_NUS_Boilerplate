@@ -57,9 +57,9 @@ static ssize_t duty_cycle_write(struct bt_conn *conn, const struct bt_gatt_attr 
                                 const void *buf, uint16_t len, uint16_t offset, uint8_t flags);
 
 static ssize_t ble_uart_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-                               void *buf, uint16_t len, uint16_t offset);
+                             void *buf, uint16_t len, uint16_t offset);
 static ssize_t ble_uart_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-                                const void *buf, uint16_t len, uint16_t offset, uint8_t flags);
+                              const void *buf, uint16_t len, uint16_t offset, uint8_t flags);
 
 static struct bt_uuid_128 bt_uuid_pwm =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x305F1AC8, 0x460B, 0x427E, 0x8CA1, 0x52B9FF1FC05F));
@@ -103,13 +103,17 @@ static struct bt_uuid_128 bt_uuid_uart_tx =
 BT_GATT_SERVICE_DEFINE(uart_tx_svc,
                        BT_GATT_PRIMARY_SERVICE(&bt_uuid_uart_base.uuid),
 
-                       /* UART rx */
+                       /* UART tx */
                        BT_GATT_CHARACTERISTIC(&bt_uuid_uart_tx.uuid,
                                               BT_GATT_CHRC_NOTIFY,
                                               BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
                                               ble_uart_read, ble_uart_write, &uart_status),
-                      
-                      /* UART tx */
+
+                       /* tx characteristic configuration */
+                       BT_GATT_CCC(ble_uart_read,
+                                   BT_GATT_PERM_READ | BT_GATT_PERM_WRITE_ENCRYPT),
+
+                       /* UART rx */
                        BT_GATT_CHARACTERISTIC(&bt_uuid_uart_rx.uuid,
                                               BT_GATT_CHRC_WRITE | BT_GATT_CHRC_WRITE_WITHOUT_RESP,
                                               BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
