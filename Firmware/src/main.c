@@ -26,6 +26,7 @@
 
 uint8_t uart_status = 0;
 volatile char *receivedData;
+bool EchoValues = true;
 
 static ssize_t ble_uart_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                              void *buf, uint16_t len, uint16_t offset);
@@ -105,6 +106,13 @@ static ssize_t ble_uart_write(struct bt_conn *conn, const struct bt_gatt_attr *a
   memcpy(DataRecv, value + offset, lenval);
 
   //then, try to echo values.
+
+  if (EchoValues == true)
+  {
+    //Set the notify data on the tx characteristic. In this case, it is the data that is sent to the rx characteristic.
+    bt_gatt_notify(conn,&uart_tx_svc.attrs[2],DataRecv,lenval);
+  }
+
   return len;
 }
 
