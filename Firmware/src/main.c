@@ -31,7 +31,6 @@ volatile char *receivedData;
 //State variables for the connected client.
 struct bt_conn *ConnectedClientConn;
 bool connectedToClient = false;
-bool justcount = true;
 bool EchoValues = true;
 
 static ssize_t ble_uart_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
@@ -181,15 +180,8 @@ void main(void)
 
   bt_conn_cb_register(&conn_callbacks);
 
-  volatile int i = 0;
-  char BLESend[10];
   while (1)
   {
     k_sleep(K_SECONDS(1));
-    i = i + 1;
-    sprintf(BLESend,"%ld",i);
-    if(connectedToClient == true && justcount == true){
-      EasyStringBleSend(BLESend,sizeof(BLESend));
-    }
   }
 }
