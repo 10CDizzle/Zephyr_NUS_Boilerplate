@@ -27,7 +27,6 @@
 uint8_t uart_status = 0;
 volatile char *receivedData;
 
-
 //State variables for the connected client.
 struct bt_conn *ConnectedClientConn;
 bool connectedToClient = false;
@@ -115,7 +114,7 @@ static ssize_t ble_uart_write(struct bt_conn *conn, const struct bt_gatt_attr *a
   if (EchoValues == true)
   {
     //Set the notify data on the tx characteristic. In this case, it is the data that is sent to the rx characteristic.
-    bt_gatt_notify(conn,&uart_tx_svc.attrs[2],DataRecv,lenval);
+    bt_gatt_notify(conn, &uart_tx_svc.attrs[2], DataRecv, lenval);
   }
 
   return len;
@@ -135,12 +134,14 @@ static void connected(struct bt_conn *conn, uint8_t err)
   }
 }
 
-//Uses the globan connection handle and the attributes we set up earlier. Simple enterface to send string values over BLE NUS UART.
-void EasyStringBleSend(void* StringData, uint16_t len){
+//Uses the global connection handle and the attributes we set up earlier. Simple enterface to send string values over BLE NUS UART.
+void SendBLEString(void *StringData, uint16_t len)
+{
   //Do stuff only if we know we're connected to a client.
-  if(connectedToClient == true){
+  if (connectedToClient == true)
+  {
     //Send the String
-    bt_gatt_notify(ConnectedClientConn,&uart_tx_svc.attrs[2],StringData,len);
+    bt_gatt_notify(ConnectedClientConn, &uart_tx_svc.attrs[2], StringData, len);
   }
 }
 
