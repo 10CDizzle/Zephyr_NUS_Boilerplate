@@ -24,19 +24,13 @@
 #include <bluetooth/gatt.h>
 #include <bluetooth/services/bas.h>
 
-
 uint8_t uart_status = 0;
-
-static ssize_t duty_cycle_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-                               void *buf, uint16_t len, uint16_t offset);
-static ssize_t duty_cycle_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-                                const void *buf, uint16_t len, uint16_t offset, uint8_t flags);
+volatile char *receivedData;
 
 static ssize_t ble_uart_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                              void *buf, uint16_t len, uint16_t offset);
 static ssize_t ble_uart_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                               const void *buf, uint16_t len, uint16_t offset, uint8_t flags);
-
 
 static struct bt_uuid_128 bt_uuid_uart_base =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x6E400001, 0xB5A3, 0xF393, 0xE0A9, 0xE50E24DCCA9E));
@@ -47,10 +41,16 @@ static struct bt_uuid_128 bt_uuid_uart_rx =
 static struct bt_uuid_128 bt_uuid_uart_tx =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x6E400003, 0xB5A3, 0xF393, 0xE0A9, 0xE50E24DCCA9E));
 
+static bool signal_notify = false;
+
+static void signal_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
+{
+  signal_notify = value == BT_GATT_CCC_NOTIFY;
+}
+
 #define DEVICE_NAME CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
 #define ADV_LEN 12
-
 
 BT_GATT_SERVICE_DEFINE(uart_tx_svc,
                        BT_GATT_PRIMARY_SERVICE(&bt_uuid_uart_base.uuid),
@@ -62,8 +62,8 @@ BT_GATT_SERVICE_DEFINE(uart_tx_svc,
                                               ble_uart_read, ble_uart_write, &uart_status),
 
                        /* tx characteristic configuration */
-                       BT_GATT_CCC(ble_uart_read,
-                                   BT_GATT_PERM_READ | BT_GATT_PERM_WRITE_ENCRYPT),
+                       BT_GATT_CCC(signal_ccc_cfg_changed,
+                                   BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 
                        /* UART rx */
                        BT_GATT_CHARACTERISTIC(&bt_uuid_uart_rx.uuid,
@@ -77,33 +77,34 @@ static const struct bt_data ad[] = {
                   0x30, 0x5F, 0x1A, 0xC8, 0x46, 0x0B, 0x42, 0x7E,
                   0x8C, 0xA1, 0x52, 0xB9, 0xFF, 0x1F, 0xC0, 0x5F)};
 
-// static ssize_t duty_cycle_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-//                                void *buf, uint16_t len, uint16_t offset)
-// {
-//   printk("duty_cycle_read: %d\n", duty_cycle);
-//   const char *value = attr->user_data;
-//   return bt_gatt_attr_read(conn, attr, buf, len, offset, value, sizeof(duty_cycle));
-// }
-
 static ssize_t ble_uart_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                              void *buf, uint16_t len, uint16_t offset)
 {
   printk("uart_read: %d\n", uart_status);
   const char *value = attr->user_data;
+  receivedData = value;
+
   return bt_gatt_attr_read(conn, attr, buf, len, offset, value, sizeof(uart_status));
 }
 
 static ssize_t ble_uart_write(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                               const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
 {
+  int lenval = len;
   printk("uart_write: %d\n", uart_status);
   uint8_t *value = attr->user_data;
-  if (offset + len > sizeof(uart_status))
-  {
-    return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
-  }
+  // if (offset + len > sizeof(uart_status))
+  // {
+  //   return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+  // }
 
   memcpy(value + offset, buf, len);
+
+  //Inefficient, but it creates a new character array with the data that was received.
+  char DataRecv[lenval];
+  memcpy(DataRecv, value + offset, lenval);
+
+  //then, try to echo values.
   return len;
 }
 
@@ -155,8 +156,10 @@ void main(void)
 
   bt_conn_cb_register(&conn_callbacks);
 
+  volatile int i = 0;
   while (1)
   {
-    k_sleep(K_MSEC(1));
+    k_sleep(K_SECONDS(1));
+    i = i + 1;
   }
 }
